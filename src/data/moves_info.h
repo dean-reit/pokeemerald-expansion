@@ -114,7 +114,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
 
     [MOVE_COMET_PUNCH] =
     {
-        .name = COMPOUND_STRING("Puños Consecutivos"),
+        .name = COMPOUND_STRING("Puños Continuos"),
         .description = COMPOUND_STRING(
             "Repeatedly punches the foe\n"
             "2 to 5 times."),
@@ -837,7 +837,8 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
 
     [MOVE_FURY_ATTACK] =
     {
-        .name = COMPOUND_STRING("Ataque Furia"),
+        .name = COMPOUND_STRING("Puñaladas de Furia"),
+        .shortname = COMPOUND_STRING("Puñaladas Furia"),
         .description = COMPOUND_STRING(
             "Jabs the foe 2 to 5 times\n"
             "with sharp horns, etc."),
@@ -4284,6 +4285,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_ROCK_SLIDE] =
     {
         .name = COMPOUND_STRING("Avalancha de Rocas"),
+        .shortname = COMPOUND_STRING("Avalancha Rocas"),
     #if B_UPDATED_MOVE_DATA >= GEN_2
         .description = COMPOUND_STRING(
             "Large boulders are hurled.\n"
@@ -4883,6 +4885,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_COTTON_SPORE] =
     {
         .name = COMPOUND_STRING("Esporas de Algodón"),
+        .shortname = COMPOUND_STRING("Esporas Algodón"),
         .description = COMPOUND_STRING(
         #if B_UPDATED_MOVE_DATA >= GEN_6
             "Spores cling to the foes,\n"
@@ -5515,6 +5518,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_SANDSTORM] =
     {
         .name = COMPOUND_STRING("Tormenta de Arena"),
+        .shortname = COMPOUND_STRING("Tormenta Arena"),
         .description = COMPOUND_STRING(
             "Causes a sandstorm that\n"
             "rages for 5 turns."),
@@ -9458,6 +9462,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_VOLT_TACKLE] =
     {
         .name = COMPOUND_STRING("Tacleada de Voltios"),
+        .shortname = COMPOUND_STRING("Tacleada Voltios"),
     #if B_UPDATED_MOVE_DATA >= GEN_4
         .description = COMPOUND_STRING(
             "A life-risking tackle that\n"
@@ -10184,6 +10189,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_ASSURANCE] =
     {
         .name = COMPOUND_STRING("Empuje de Garantía"),
+        .shortname = COMPOUND_STRING("Empuje Garantía"),
         .description = COMPOUND_STRING(
             "An attack that gains power\n"
             "if the foe has been hurt."),
@@ -10573,7 +10579,8 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
 
     [MOVE_WORRY_SEED] =
     {
-        .name = COMPOUND_STRING("Semilla de Duda"),
+        .name = COMPOUND_STRING("Semilla de Angustia"),
+        .shortname = COMPOUND_STRING("Semilla Angustia"),
         .description = COMPOUND_STRING(
             "Plants a seed on the foe\n"
             "giving it Insomnia."),
@@ -10749,6 +10756,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_FORCE_PALM] =
     {
         .name = COMPOUND_STRING("Descarga Explosiva"),
+        .shortname = COMPOUND_STRING("DescargaExplosiva"),
         .description = COMPOUND_STRING(
             "A shock wave attack that\n"
             "may paralyze the foe."),
@@ -10827,6 +10835,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_POISON_JAB] =
     {
         .name = COMPOUND_STRING("Puñalada Venenosa"),
+        .shortname = COMPOUND_STRING("PuñaladaVenenosa"),
         .description = COMPOUND_STRING(
             "A stabbing attack that\n"
             "may poison the foe."),
@@ -11746,6 +11755,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_DRACO_METEOR] =
     {
         .name = COMPOUND_STRING("Lluvia de Meteoros"),
+        .shortname = COMPOUND_STRING("Lluvia Meteoros"),
         .description = COMPOUND_STRING(
             "Summons comets from the sky,\n"
             "but harshly lowers Sp. Atk."),
@@ -11772,6 +11782,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_DISCHARGE] =
     {
         .name = COMPOUND_STRING("Descarga Eléctrica"),
+        .shortname = COMPOUND_STRING("DescargaEléctrica"),
         .description = COMPOUND_STRING(
             "Zaps all others with\n"
             "electricity. May paralyze."),
@@ -11822,6 +11833,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_LEAF_STORM] =
     {
         .name = COMPOUND_STRING("Tormenta de Hojas"),
+        .shortname = COMPOUND_STRING("Tormenta Hojas"),
         .description = COMPOUND_STRING(
             "Whips up a storm of leaves,\n"
             "but harshly lowers Sp. Atk."),
@@ -12484,6 +12496,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     [MOVE_MAGMA_STORM] =
     {
         .name = COMPOUND_STRING("Tormenta de Magma"),
+        .shortname = COMPOUND_STRING("Tormenta Magma"),
         .description = COMPOUND_STRING(
             "Traps the foe in a vortex\n"
             "of fire for "BINDING_TURNS" turns."),

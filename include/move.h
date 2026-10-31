@@ -97,6 +97,7 @@ enum TerrainGroundCheck
 struct MoveInfo
 {
     const u8 *name;
+    const u8 *shortname;
     const u8 *description;
     enum BattleMoveEffects effect:16;
     enum Type type:5;     // Up to 32
@@ -254,6 +255,14 @@ static inline enum Move SanitizeMoveId(enum Move moveId)
 static inline const u8 *GetMoveName(enum Move moveId)
 {
     return gMovesInfo[SanitizeMoveId(moveId)].name;
+}
+
+static inline const u8 *GetShortMoveName(enum Move moveId)
+{
+    if (gMovesInfo[SanitizeMoveId(moveId)].shortname == 0)
+        return gMovesInfo[SanitizeMoveId(moveId)].name;
+    else
+        return gMovesInfo[SanitizeMoveId(moveId)].shortname;
 }
 
 static inline enum BattleMoveEffects GetMoveEffect(enum Move moveId)
