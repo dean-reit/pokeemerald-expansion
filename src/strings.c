@@ -141,11 +141,11 @@ const u8 gText_ReturnToVar1[] = _("Return to\n{STR_VAR_1}.");
 
 const u8 *const gPocketNamesStringsTable[] =
 {
-    [POCKET_ITEMS]      = COMPOUND_STRING("ITEMS"),
-    [POCKET_POKE_BALLS] = COMPOUND_STRING("POKé BALLS"),
-    [POCKET_TM_HM]      = COMPOUND_STRING("TMs & HMs"),
-    [POCKET_BERRIES]    = COMPOUND_STRING("BERRIES"),
-    [POCKET_KEY_ITEMS]  = COMPOUND_STRING("KEY ITEMS")
+    [POCKET_ITEMS]      = COMPOUND_STRING("Objetos"),
+    [POCKET_POKE_BALLS] = COMPOUND_STRING("Pokébolas"),
+    [POCKET_TM_HM]      = COMPOUND_STRING("MTs y MOs"),
+    [POCKET_BERRIES]    = COMPOUND_STRING("Bayas"),
+    [POCKET_KEY_ITEMS]  = COMPOUND_STRING("Objetos Clave")
 };
 
 const u8 gText_NumberItem_TMBerry[] = _("{NO}{STR_VAR_1}{CLEAR 3}{STR_VAR_2}");
@@ -873,12 +873,12 @@ const u8 gText_RTCTime[] = _("RTC time"); // Unused
 const u8 gText_UpdatedTime[] = _("Updated time"); // Unused
 const u8 gText_MenuPokedex[] = _("POKéDEX");
 const u8 gText_MenuPokemon[] = _("POKéMON");
-const u8 gText_MenuBag[] = _("BAG");
+const u8 gText_MenuBag[] = _("Mochila");
 const u8 gText_MenuPokenav[] = _("POKéNAV");
 const u8 gText_MenuPlayer[] = _("{PLAYER}");
-const u8 gText_MenuSave[] = _("SAVE");
-const u8 gText_MenuOption[] = _("OPTION");
-const u8 gText_MenuExit[] = _("EXIT");
+const u8 gText_MenuSave[] = _("Guardar");
+const u8 gText_MenuOption[] = _("Opciones");
+const u8 gText_MenuExit[] = _("Salir");
 const u8 gText_MenuRetire[] = _("RETIRE");
 const u8 gText_MenuRest[] = _("REST");
 const u8 gText_MenuDexNav[] = _("DEXNAV");
@@ -953,10 +953,10 @@ const u8 gText_AcceptThisPkmn[] = _("Accept this POKéMON?");
 const u8 gText_4Spaces[] = _("    "); // Unused
 const u8 gText_SamePkmnInPartyAlready[] = _("Same {PKMN} in party already.");
 const u8 gText_DecimalPoint[] = _(".");
-const u8 gText_SavingPlayer[] = _("PLAYER");
-const u8 gText_SavingBadges[] = _("BADGES");
+const u8 gText_SavingPlayer[] = _("Jugador");
+const u8 gText_SavingBadges[] = _("Medallas");
 const u8 gText_SavingPokedex[] = _("POKéDEX");
-const u8 gText_SavingTime[] = _("TIME");
+const u8 gText_SavingTime[] = _("Tiempo");
 const u8 gText_WirelessCommStatus[] = _("Wireless Communication Status");
 const u8 gText_PeopleTrading[] = _("People trading:");
 const u8 gText_PeopleBattling[] = _("People battling:");
