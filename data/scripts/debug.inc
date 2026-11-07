@@ -135,8 +135,8 @@ Debug_FlagsNotSetOverworldConfigMessage::
 	goto Debug_MessageEnd
 
 Debug_FlagsNotSetOverworldConfigMessage_Text:
-	.string "Feature unavailable!\n"
-	.string "Please define a usable flag in:\l"
+	.string "¡Característica no disponible!\n"
+	.string "¡Por favor define una flag en:\l"
 	.string "'include/config/overworld.h'!$"
 
 Debug_FlagsNotSetBattleConfigMessage::
@@ -144,8 +144,8 @@ Debug_FlagsNotSetBattleConfigMessage::
 	goto Debug_MessageEnd
 
 Debug_FlagsNotSetBattleConfigMessage_Text:
-	.string "Feature unavailable!\n"
-	.string "Please define a usable flag in:\l"
+	.string "¡Característica no disponible!\n"
+	.string "¡Por favor define una flag en:\l"
 	.string "'include/config/battle.h'!$"
 
 Debug_VarsNotSetBattleConfigMessage::
@@ -153,8 +153,8 @@ Debug_VarsNotSetBattleConfigMessage::
 	goto Debug_MessageEnd
 
 Debug_VarsNotSetBattleConfigMessage_Text:
-	.string "Feature unavailable!\n"
-	.string "Please define a usable var in:\l"
+	.string "¡Característica no disponible!\n"
+	.string "¡Por favor define una variable en:\l"
 	.string "'include/config/battle.h'!$"
 
 Debug_BoxFilledMessage::
@@ -162,7 +162,7 @@ Debug_BoxFilledMessage::
 	goto Debug_MessageEnd
 
 Debug_BoxFilledMessage_Text:
-	.string "Storage boxes filled!$"
+	.string "¡Cajas del Almacenamiento llenas!$"
 
 Debug_EventScript_CheckEVs::
 	lockall
@@ -179,10 +179,10 @@ Debug_EventScript_CheckEVs_End::
 	end
 
 Debug_EventScript_Text_OffensiveEVs:
-	.string "ATK EVs: {STR_VAR_1}, SPATK EVs: {STR_VAR_2}, SPEED EVs: {STR_VAR_3}$"
+	.string "PEs ATQ: {STR_VAR_1}, PEs ATQ ESP: {STR_VAR_2}, PEs VEL: {STR_VAR_3}$"
 
 Debug_EventScript_Text_DefensiveEVs:
-	.string "HP EVs: {STR_VAR_1}, DEF EVs: {STR_VAR_2}, SPDEF EVs: {STR_VAR_3}$"
+	.string "PEs PS: {STR_VAR_1}, PEs DEF: {STR_VAR_2}, PEs DEF ESP: {STR_VAR_3}$"
 
 Debug_EventScript_CheckIVs::
 	lockall
@@ -199,10 +199,10 @@ Debug_EventScript_CheckIVs_End::
 	end
 
 Debug_EventScript_Text_OffensiveIVs:
-	.string "ATK IVs: {STR_VAR_1}, SPATK IVs: {STR_VAR_2}, SPEED IVs: {STR_VAR_3}$"
+	.string "VIs ATQ: {STR_VAR_1}, VIs ATQ ESP: {STR_VAR_2}, VIs VEL: {STR_VAR_3}$"
 
 Debug_EventScript_Text_DefensiveIVs:
-	.string "HP IVs: {STR_VAR_1}, DEF IVs: {STR_VAR_2}, SPDEF IVs: {STR_VAR_3}$"
+	.string "VIs PS: {STR_VAR_1}, VIs DEF: {STR_VAR_2}, VIs DEF ESP: {STR_VAR_3}$"
 
 Debug_EventScript_Script_1::
 	release
@@ -249,20 +249,20 @@ Debug_CheckSaveBlock::
 	end
 
 Debug_SaveBlock1Size::
-	.string "SaveBlock1 size: {STR_VAR_1}b/{STR_VAR_2}b.\n"
-	.string "Free space: {STR_VAR_3}b.$"
+	.string "Tamaño SaveBlock1: {STR_VAR_1}b/{STR_VAR_2}b.\n"
+	.string "Espacio libre: {STR_VAR_3}b.$"
 
 Debug_SaveBlock2Size::
-	.string "SaveBlock2 size: {STR_VAR_1}b/{STR_VAR_2}b.\n"
-	.string "Free space: {STR_VAR_3}b.$"
+	.string "Tamaño SaveBlock2: {STR_VAR_1}b/{STR_VAR_2}b.\n"
+	.string "Espacio libre: {STR_VAR_3}b.$"
 
 Debug_SaveBlock3Size::
-	.string "SaveBlock3 size: {STR_VAR_1}b/{STR_VAR_2}b.\n"
-	.string "Free space: {STR_VAR_3}b.$"
+	.string "Tamaño SaveBlock3: {STR_VAR_1}b/{STR_VAR_2}b.\n"
+	.string "Espacio libre: {STR_VAR_3}b.$"
 
 Debug_PokemonStorageSize::
-	.string "{PKMN}Storage size: {STR_VAR_1}b/{STR_VAR_2}b.\n"
-	.string "Free space: {STR_VAR_3}b.$"
+	.string "Tam. Almacenamiento {PKMN}: {STR_VAR_1}b/{STR_VAR_2}b.\n"
+	.string "Espacio libre: {STR_VAR_3}b.$"
 
 Debug_CheckROMSpace::
 	callnative CheckROMSize
@@ -271,8 +271,8 @@ Debug_CheckROMSpace::
 	end
 
 Debug_ROMSize::
-	.string "ROM size: {STR_VAR_1}MB/32MB.\n"
-	.string "Free space: {STR_VAR_2}MB.$"
+	.string "Tamaño de la ROM: {STR_VAR_1}MB/32MB.\n"
+	.string "Espacio libre: {STR_VAR_2}MB.$"
 
 Debug_HatchAnEgg::
 	lockall
@@ -298,10 +298,10 @@ DebugScript_HatchAnEgg_CantForceHatch::
 	end
 
 DebugScript_Text_EmptyParty::
-	.string "You have no Pokémon nor Eggs.$"
+	.string "No tienes Pokémon ni Huevos.$"
 
 DebugScript_HatchAnEgg_Text_NotAnEgg::
-	.string "That's not a Pokémon Egg.$"
+	.string "Eso no es un Huevo Pokémon.$"
 
 DebugScript_ZeroDaycareMons::
 	msgbox DebugText_DaycareNoPokemon, MSGBOX_DEFAULT
@@ -319,13 +319,13 @@ DebugScript_DaycareMonsNotCompatible::
 	end
 
 DebugText_DaycareNoPokemon:
-	.string "You have no Pokémon at Daycare.$"
+	.string "No tienes Pokémon en la Guardería.$"
 
 DebugText_DaycareOnePokemon:
-	.string "You have only one Pokémon at Daycare.$"
+	.string "Solo hay un Pokémon en la Guardería.$"
 
 DebugText_DaycarePokemonNotCompatible:
-	.string "Your Pokémon at Daycare can't\nhave babies together!$"
+	.string "¡Tús Pokémon en la Guardería no\npueden tener bebés juntos!$"
 
 Debug_ShowExpansionVersion::
 	callnative BufferExpansionVersion
@@ -342,7 +342,7 @@ Debug_Follower_NPC_Not_Enabled::
 	end
 
 Debug_Enable_To_Use_Follower_NPCs:
-	.string "Feature unavailable.\nSet FNPC_ENABLE_NPC_FOLLOWERS to\lTRUE in 'include/config/follower_npc.h'.$"
+	.string "Característica no disponible.\nCambia FNPC_ENABLE_NPC_FOLLOWERS a\lTRUE en 'include/config/follower_npc.h'.$"
 
 Debug_Follower_NPC_Event_Script::
 	lock
@@ -352,7 +352,7 @@ Debug_Follower_NPC_Event_Script::
 	end
 
 Debug_Follower_NPC_Test_Message:
-	.string "This is a Follower NPC test.$"
+	.string "Prueba de NPCs Acompañantes.$"
 
 Debug_EventScript_Steven_Multi::
 	call MossdeepCity_SpaceCenter_2F_EventScript_ChoosePartyForMultiBattle
@@ -373,8 +373,9 @@ Debug_BerryPestsDisabled::
 	end
 
 DebugText_BerryPestsDisabled:
-	.string "OW_BERRY_PESTS is disabled.\n"
-	.string "Unable to force pests onto berry trees.$"
+	.string "OW_BERRY_PESTS está desactivado.\n"
+	.string "No se pueden forzar pestes en los\l"
+	.string "árboles de bayas.$"
 
 Debug_BerryWeedsDisabled::
 	msgbox DebugText_BerryWeedsDisabled, MSGBOX_DEFAULT
@@ -382,8 +383,9 @@ Debug_BerryWeedsDisabled::
 	end
 
 DebugText_BerryWeedsDisabled:
-	.string "OW_BERRY_WEEDS is disabled.\n"
-	.string "Unable to force weeds onto berry trees.$"
+	.string "OW_BERRY_WEEDS está desactivado.\n"
+	.string "No se pueden forzar hierbas malas\l"
+	.string "en los árboles de bayas.$"
 
 Debug_EventScript_InflictStatus1::
 	lockall
@@ -580,85 +582,85 @@ Debug_EventScript_InflictStatus1_Party_Frostbite:
 	end
 
 Debug_EventScript_InflictStatus1_Text_Single:
-	.string "Single$"
+	.string "Solo$"
 
 Debug_EventScript_InflictStatus1_Text_PartyWide:
-	.string "Party-wide$"
+	.string "Todo el equipo$"
 
 Debug_EventScript_InflictStatus1_Text_Close:
-	.string "Close$"
+	.string "Cerrar$"
 
 Debug_EventScript_InflictStatus1_Text_Poison:
-	.string "Poison$"
+	.string "Veneno$"
 
 Debug_EventScript_InflictStatus1_Text_Paralysis:
-	.string "Paralysis$"
+	.string "Parálisis$"
 
 Debug_EventScript_InflictStatus1_Text_Sleep:
-	.string "Sleep$"
+	.string "Dormido$"
 
 Debug_EventScript_InflictStatus1_Text_Burn:
-	.string "Burn$"
+	.string "Quemado$"
 
 Debug_EventScript_InflictStatus1_Text_Freeze:
-	.string "Freeze$"
+	.string "Congelado$"
 
 Debug_EventScript_InflictStatus1_Text_Frostbite:
-	.string "Frostbite$"
+	.string "Helado$"
 
 Debug_EventScript_InflictStatus1_Text_KO:
-	.string "KO$"
+	.string "Debilitado$"
 
 Debug_EventScript_ChangeNature_Text_Hardy:
-	.string "Hardy$"
+	.string "Fuerte$"
 Debug_EventScript_ChangeNature_Text_Lonely:
-	.string "Lonely$"
+	.string "Solitaria$"
 Debug_EventScript_ChangeNature_Text_Brave:
-	.string "Brave$"
+	.string "Audaz$"
 Debug_EventScript_ChangeNature_Text_Adamant:
-	.string "Adamant$"
+	.string "Firme$"
 Debug_EventScript_ChangeNature_Text_Naughty:
-	.string "Naughty$"
+	.string "Pícara$"
 Debug_EventScript_ChangeNature_Text_Bold:
-	.string "Bold$"
+	.string "Osada$"
 Debug_EventScript_ChangeNature_Text_Docile:
-	.string "Docile$"
+	.string "Dócil$"
 Debug_EventScript_ChangeNature_Text_Relaxed:
-	.string "Relaxed$"
+	.string "Relajada$"
 Debug_EventScript_ChangeNature_Text_Impish:
-	.string "Impish$"
+	.string "Agitada$"
 Debug_EventScript_ChangeNature_Text_Lax:
-	.string "Lax$"
+	.string "Descuidada$"
 Debug_EventScript_ChangeNature_Text_Timid:
-	.string "Timid$"
+	.string "Miedosa$"
 Debug_EventScript_ChangeNature_Text_Hasty:
-	.string "Hasty$"
+	.string "Activa$"
 Debug_EventScript_ChangeNature_Text_Serious:
-	.string "Serious$"
+	.string "Seria$"
 Debug_EventScript_ChangeNature_Text_Jolly:
-	.string "Jolly$"
+	.string "Alegre$"
 Debug_EventScript_ChangeNature_Text_Naive:
-	.string "Naive$"
+	.string "Ingenua$"
 Debug_EventScript_ChangeNature_Text_Modest:
-	.string "Modest$"
+	.string "Modesta$"
 Debug_EventScript_ChangeNature_Text_Mild:
-	.string "Mild$"
+	.string "Cordial$"
 Debug_EventScript_ChangeNature_Text_Quiet:
-	.string "Quiet$"
+	.string "Apacible$"
 Debug_EventScript_ChangeNature_Text_Bashful:
-	.string "Bashful$"
+	.string "Tímida$"
 Debug_EventScript_ChangeNature_Text_Rash:
-	.string "Rash$"
+	.string "Alocada$"
 Debug_EventScript_ChangeNature_Text_Calm:
-	.string "Calm$"
+	.string "Serena$"
 Debug_EventScript_ChangeNature_Text_Gentle:
-	.string "Gentle$"
+	.string "Amable$"
 Debug_EventScript_ChangeNature_Text_Sassy:
-	.string "Sassy$"
+	.string "Grosera$"
 Debug_EventScript_ChangeNature_Text_Careful:
-	.string "Careful$"
+	.string "Cauta$"
 Debug_EventScript_ChangeNature_Text_Quirky:
-	.string "Quirky$"
+	.string "Extravagante$"
 
 Debug_EventScript_EWRAMCounters::
 	callnative CheckEWRAMCounters
@@ -667,8 +669,8 @@ Debug_EventScript_EWRAMCounters::
 	end
 
 Debug_EventScript_EWRAMCounters_Text::
-	.string "Follower Steps: {STR_VAR_1}.\n"
-	.string "Fishing Chain: {STR_VAR_2}.$"
+	.string "Pasos de Acompañante: {STR_VAR_1}.\n"
+	.string "Cadena de Pesca: {STR_VAR_2}.$"
 
 Debug_EventScript_FontTest_Text_1::
 	.string "{FONT_SMALL_NARROWER}"                 @ Edit this to test your font
@@ -820,12 +822,12 @@ Debug_EventScript_FakeRTCNotEnabled::
 	end
 
 Debug_EventScript_FakeRTCNotEnabled_Text_0:
-	.string "You currently do not have Fake RTC\nenabled. Please enable it in include/\lconfig/overworld.h$"
+	.string "No has activado el Reloj(RTC) Falso.\nPor favor actívalo en include/\lconfig/overworld.h$"
 
 
 Debug_EventScript_TellTheTime_Text_0:
-	.string "Time and date:\n"
+	.string "Hora y día:\n"
 	.string "{STR_VAR_1}, {STR_VAR_2}:{STR_VAR_3}$"
 
 DebugEventScript_PrintWeekday_Text_0:
-	.string "Time of day: {STR_VAR_1}$"
+	.string "Tiempo del día: {STR_VAR_1}$"
