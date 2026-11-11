@@ -2296,7 +2296,7 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
     // TODO more sophisticated logic
     u32 uses = gBattleMons[battlerAtk].volatiles.consecutiveMoveUses;
 
-    if (predictedMove != MOVE_NONE && predictedMove != MOVE_UNAVAILABLE)
+    if (IsMoveValid(predictedMove))
     {
         if (MoveIgnoresProtect(predictedMove))
             return WORST_EFFECT;
@@ -2319,7 +2319,7 @@ s32 ProtectChecks(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Mov
 
     if (uses == 0)
     {
-        if (predictedMove != MOVE_NONE && predictedMove != MOVE_UNAVAILABLE && !IsBattleMoveStatus(predictedMove))
+        if (IsMoveValid(predictedMove) && !IsBattleMoveStatus(predictedMove))
             score += DECENT_EFFECT;
         else if (Random() % 256 < 100)
             score += WEAK_EFFECT;
@@ -2417,6 +2417,7 @@ bool32 CanLowerStat(enum BattlerId battlerAtk, enum BattlerId battlerDef, struct
 enum AIScore IncreaseStatDownScore(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Stat stat)
 {
     enum AIScore tempScore = NO_INCREASE;
+    enum BattlerId partnerAtk = GetPartnerBattler(battlerAtk);
 
     // Don't increase score if target is already -3 stat stage
     if (stat != STAT_SPEED && gBattleMons[battlerDef].statStages[stat] <= DEFAULT_STAT_STAGE - 3)
@@ -2445,14 +2446,14 @@ enum AIScore IncreaseStatDownScore(enum BattlerId battlerAtk, enum BattlerId bat
         break;
     case STAT_DEF:
         if (HasMoveWithCategory(battlerAtk, DAMAGE_CATEGORY_PHYSICAL)
-         || HasMoveWithCategory(GetPartnerBattler(battlerAtk), DAMAGE_CATEGORY_PHYSICAL))
+         || (IsBattlerAlive(partnerAtk) && HasMoveWithCategory(partnerAtk, DAMAGE_CATEGORY_PHYSICAL)))
             tempScore += DECENT_EFFECT;
         break;
     case STAT_SPEED:
     {
         enum Move predictedMove = GetPredictedMove(battlerAtk, battlerDef, gAiLogicData);
         if (AI_IsSlower(battlerAtk, battlerDef, MOVE_NONE, predictedMove, DONT_CONSIDER_PRIORITY)
-        || AI_IsSlower(GetPartnerBattler(battlerAtk), battlerDef, MOVE_NONE, predictedMove, DONT_CONSIDER_PRIORITY))
+        || (IsBattlerAlive(partnerAtk) && AI_IsSlower(partnerAtk, battlerDef, MOVE_NONE, predictedMove, DONT_CONSIDER_PRIORITY)))
             tempScore += DECENT_EFFECT;
         break;
     }
@@ -2462,7 +2463,7 @@ enum AIScore IncreaseStatDownScore(enum BattlerId battlerAtk, enum BattlerId bat
         break;
     case STAT_SPDEF:
         if (HasMoveWithCategory(battlerAtk, DAMAGE_CATEGORY_SPECIAL)
-         || HasMoveWithCategory(GetPartnerBattler(battlerAtk), DAMAGE_CATEGORY_SPECIAL))
+         || (IsBattlerAlive(partnerAtk) && HasMoveWithCategory(partnerAtk, DAMAGE_CATEGORY_SPECIAL)))
             tempScore += DECENT_EFFECT;
         break;
     case STAT_ACC:
@@ -2708,7 +2709,7 @@ bool32 HasOnlyMovesWithCategory(enum BattlerId battlerId, enum DamageCategory ca
     {
         if (onlyOffensive && IsBattleMoveStatus(moves[moveIndex]))
             continue;
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && GetBattleMoveCategory(moves[moveIndex]) != category)
+        if (IsMoveValid(moves[moveIndex]) && GetBattleMoveCategory(moves[moveIndex]) != category)
             return FALSE;
     }
 
@@ -2721,7 +2722,7 @@ bool32 HasMoveWithCategory(enum BattlerId battler, enum DamageCategory category)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && GetBattleMoveCategory(moves[moveIndex]) == category)
+        if (IsMoveValid(moves[moveIndex]) && GetBattleMoveCategory(moves[moveIndex]) == category)
             return TRUE;
     }
     return FALSE;
@@ -2733,7 +2734,7 @@ bool32 HasMoveWithType(enum BattlerId battler, enum Type type)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && GetMoveType(moves[moveIndex]) == type)
+        if (IsMoveValid(moves[moveIndex]) && GetMoveType(moves[moveIndex]) == type)
             return TRUE;
     }
 
@@ -2746,7 +2747,7 @@ bool32 HasMoveWithEffect(enum BattlerId battler, enum BattleMoveEffects effect)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && GetMoveEffect(moves[moveIndex]) == effect)
+        if (IsMoveValid(moves[moveIndex]) && GetMoveEffect(moves[moveIndex]) == effect)
             return TRUE;
     }
 
@@ -2759,7 +2760,7 @@ bool32 HasMoveWithAIEffect(enum BattlerId battler, u32 aiEffect)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE)
+        if (IsMoveValid(moves[moveIndex]))
         {
             if (GetAIEffectGroupFromMove(battler, moves[moveIndex]) & aiEffect)
                 return TRUE;
@@ -2838,7 +2839,7 @@ bool32 IsPowerBasedOnStatus(enum BattlerId battlerId, enum BattleMoveEffects eff
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE
+        if (IsMoveValid(moves[moveIndex])
             && GetMoveEffect(moves[moveIndex]) == effect
             && (GetMoveEffectArg_Status(moves[moveIndex]) & argument))
             return TRUE;
@@ -2853,7 +2854,7 @@ bool32 HasMoveWithAdditionalEffect(enum BattlerId battlerId, enum MoveEffect mov
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE
+        if (IsMoveValid(moves[moveIndex])
             && MoveHasAdditionalEffect(moves[moveIndex], moveEffect))
             return TRUE;
     }
@@ -2876,7 +2877,7 @@ bool32 HasMoveWithCriticalHitChance(enum BattlerId battlerId)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE
+        if (IsMoveValid(moves[moveIndex])
             && GetMoveCriticalHitStage(moves[moveIndex]) > 0)
             return TRUE;
     }
@@ -2890,7 +2891,7 @@ bool32 HasMoveWithMoveEffectExcept(enum BattlerId battlerId, enum MoveEffect mov
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE
+        if (IsMoveValid(moves[moveIndex])
             && GetMoveEffect(moves[moveIndex]) != exception
             && MoveHasAdditionalEffect(moves[moveIndex], moveEffect))
             return TRUE;
@@ -2903,9 +2904,12 @@ bool32 HasMove(enum BattlerId battlerId, enum Move move)
 {
     enum Move *moves = GetMovesArray(battlerId);
 
+    if (!IsMoveValid(move))
+        return FALSE;
+
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && moves[moveIndex] == move)
+        if (moves[moveIndex] == move)
             return TRUE;
     }
 
@@ -2933,7 +2937,7 @@ bool32 HasMoveThatLowersOwnStats(enum BattlerId battlerId)
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
         aiMove = moves[moveIndex];
-        if (aiMove != MOVE_NONE && aiMove != MOVE_UNAVAILABLE)
+        if (IsMoveValid(aiMove))
         {
             u32 additionalEffectCount = GetMoveAdditionalEffectCount(aiMove);
             for (u32 effectIndex = 0; effectIndex < additionalEffectCount; effectIndex++)
@@ -2955,7 +2959,7 @@ bool32 HasMoveThatRaisesOwnStats(enum BattlerId battlerId)
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
         aiMove = moves[moveIndex];
-        if (aiMove != MOVE_NONE && aiMove != MOVE_UNAVAILABLE)
+        if (IsMoveValid(aiMove))
         {
             u32 additionalEffectCount = GetMoveAdditionalEffectCount(aiMove);
             for (u32 effectIndex = 0; effectIndex < additionalEffectCount; effectIndex++)
@@ -3019,7 +3023,7 @@ bool32 HasHealingEffect(enum BattlerId battlerId)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && IsHealingMove(moves[moveIndex]))
+        if (IsMoveValid(moves[moveIndex]) && IsHealingMove(moves[moveIndex]))
             return TRUE;
     }
 
@@ -3046,7 +3050,7 @@ bool32 HasTrappingMoveEffect(enum BattlerId battler)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && IsTrappingMove(moves[moveIndex]))
+        if (IsMoveValid(moves[moveIndex]) && IsTrappingMove(moves[moveIndex]))
             return TRUE;
     }
 
@@ -3058,7 +3062,7 @@ bool32 HasThawingMove(enum BattlerId battler)
     enum Move *moves = GetMovesArray(battler);
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && MoveThawsUser(moves[moveIndex]))
+        if (IsMoveValid(moves[moveIndex]) && MoveThawsUser(moves[moveIndex]))
             return TRUE;
     }
     return FALSE;
@@ -3196,7 +3200,7 @@ bool32 HasDamagingMove(enum BattlerId battler)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && GetMovePower(moves[moveIndex]) > 0)
+        if (IsMoveValid(moves[moveIndex]) && GetMovePower(moves[moveIndex]) > 0)
             return TRUE;
     }
 
@@ -3212,7 +3216,7 @@ bool32 HasDamagingMoveOfType(enum BattlerId battler, enum Type type)
 
     for (u32 moveIndex = 0; moveIndex < MAX_MON_MOVES; moveIndex++)
     {
-        if (moves[moveIndex] != MOVE_NONE && moves[moveIndex] != MOVE_UNAVAILABLE && GetMovePower(moves[moveIndex]) > 0)
+        if (IsMoveValid(moves[moveIndex]) && GetMovePower(moves[moveIndex]) > 0)
         {
             enum Type moveType = GetDynamicMoveType(GetBattlerMon(battler), moves[moveIndex], battler, ability, holdEffect, MON_IN_BATTLE);
 
