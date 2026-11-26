@@ -14,6 +14,7 @@
 
 bool32 IsOnSwitchInActivation(enum HoldEffect holdEffect)          { return gHoldEffectsInfo[holdEffect].onSwitchIn; }
 bool32 IsMirrorHerbActivation(enum HoldEffect holdEffect)          { return gHoldEffectsInfo[holdEffect].mirrorHerb; }
+bool32 IsMentalHerbActivation(enum HoldEffect holdEffect)          { return gHoldEffectsInfo[holdEffect].mentalHerb; }
 bool32 IsWhiteHerbActivation(enum HoldEffect holdEffect)           { return gHoldEffectsInfo[holdEffect].whiteHerb; }
 bool32 IsOnStatusChangeActivation(enum HoldEffect holdEffect)      { return gHoldEffectsInfo[holdEffect].onStatusChange; }
 bool32 IsOnHpThresholdActivation(enum HoldEffect holdEffect)       { return gHoldEffectsInfo[holdEffect].onHpThreshold; }
@@ -29,6 +30,7 @@ bool32 IsOnBerryActivation(enum HoldEffect holdEffect)             { return GetI
 bool32 IsOnFlingActivation(enum HoldEffect holdEffect)             { return gHoldEffectsInfo[holdEffect].onFling; }
 bool32 IsBoosterEnergyActivation(enum HoldEffect holdEffect)       { return gHoldEffectsInfo[holdEffect].boosterEnergy; }
 bool32 IsOrbsWhiteHerbActivation(enum HoldEffect holdEffect)       { return gHoldEffectsInfo[holdEffect].orbsWhiteHerbActivation; }
+bool32 IsJabocaRowapActivation(enum HoldEffect holdEffect)         { return gHoldEffectsInfo[holdEffect].jabocaRowap; }
 
 bool32 IsForceTriggerItemActivation(enum HoldEffect holdEffect)
 {
@@ -115,7 +117,7 @@ static enum ItemEffect TryBerserkGene(enum BattlerId battler)
     return ITEM_STATS_CHANGE;
 }
 
-static enum ItemEffect RestoreWhiteHerbStats(enum BattlerId battler)
+static enum ItemEffect RestoreWhiteHerbStats(enum BattlerId battler, ActivationTiming timing)
 {
     enum ItemEffect effect = ITEM_NO_EFFECT;
 
@@ -129,7 +131,11 @@ static enum ItemEffect RestoreWhiteHerbStats(enum BattlerId battler)
     }
 
     if (effect != ITEM_NO_EFFECT)
+    {
+        if (timing != IsOnFlingActivation)
+            BattleScriptCall(BattleScript_RemoveItem);
         BattleScriptCall(BattleScript_WhiteHerbRet);
+    }
 
     return effect;
 }
@@ -438,8 +444,13 @@ static enum ItemEffect TryMentalHerb(enum BattlerId battler, ActivationTiming ti
         }
     }
 
-    if (effect)
+
+    if (effect != ITEM_NO_EFFECT)
+    {
+        if (timing != IsOnFlingActivation)
+            BattleScriptCall(BattleScript_RemoveItem);
         BattleScriptCall(BattleScript_MentalHerbCureRet);
+    }
 
     return effect;
 }
@@ -493,8 +504,9 @@ static enum ItemEffect DamagedStatBoostBerryEffect(enum BattlerId battlerDef, en
 static enum ItemEffect TryShellBell(enum BattlerId battlerAtk)
 {
     enum ItemEffect effect = ITEM_NO_EFFECT;
+    u32 accumulatedDamage = GetAccumulatedDamage();
 
-    if (gBattleScripting.savedDmg > 0
+    if (accumulatedDamage > 0
      && !gBattleStruct->unableToUseMove
      && GetMoveEffect(gCurrentMove) != EFFECT_FUTURE_SIGHT
      && gBattleStruct->battlerState[battlerAtk].originalBattlerPartyId == PARTY_SIZE
@@ -503,7 +515,7 @@ static enum ItemEffect TryShellBell(enum BattlerId battlerAtk)
     {
         if (EmergencyExitCanBeTriggered(battlerAtk, GetBattlerAbility(battlerAtk)))
             gSpecialStatuses[battlerAtk].shellBellEmergencyExit = TRUE;
-        SetHealAmount(battlerAtk, gBattleScripting.savedDmg / GetBattlerHoldEffectParam(battlerAtk));
+        SetHealAmount(battlerAtk, accumulatedDamage / GetBattlerHoldEffectParam(battlerAtk));
         BattleScriptCall(BattleScript_ItemHealHP_Ret);
         effect = ITEM_HP_CHANGE;
     }
@@ -517,7 +529,7 @@ static enum ItemEffect TryLifeOrb(enum BattlerId battlerAtk)
 
     if (!gBattleStruct->unableToUseMove
      && gBattleStruct->battlerState[battlerAtk].originalBattlerPartyId == PARTY_SIZE
-     && (IsAnyTargetTurnDamaged(battlerAtk, INCLUDING_SUBSTITUTES) || gBattleScripting.savedDmg > 0)
+     && IsAnyTargetTurnDamaged(battlerAtk, INCLUDING_SUBSTITUTES)
      && !IsAbilityAndRecord(battlerAtk, GetBattlerAbility(battlerAtk), ABILITY_MAGIC_GUARD))
     {
         SetPassiveDamageAmount(battlerAtk, GetNonDynamaxMaxHP(battlerAtk) / 10);
@@ -534,7 +546,6 @@ static enum ItemEffect TryStickyBarbOnTargetHit(enum BattlerId battlerDef, enum 
 
     if (IsBattlerTurnDamaged(battlerDef, EXCLUDING_SUBSTITUTES)
      && !CanBattlerAvoidContactEffects(battlerAtk, battlerDef, GetBattlerAbility(battlerAtk), GetBattlerHoldEffect(battlerAtk), gCurrentMove)
-     && !DoesSubstituteBlockMove(battlerAtk, battlerDef, gCurrentMove)
      && IsBattlerAlive(battlerAtk)
      && CanStealItem(battlerAtk, battlerDef, item)
      && gBattleMons[battlerAtk].item == ITEM_NONE)
@@ -948,11 +959,10 @@ static enum ItemEffect CriticalHitRatioUp(enum BattlerId battler, enum Item item
 {
     enum ItemEffect effect = ITEM_NO_EFFECT;
 
-    if (!gBattleMons[battler].volatiles.focusEnergy
-     && !gBattleMons[battler].volatiles.dragonCheer
+    if (!gBattleMons[battler].volatiles.criticalHitBoost
      && HasEnoughHpToEatBerry(battler, GetBattlerAbility(battler), GetItemHoldEffectParam(itemId), itemId))
     {
-        gBattleMons[battler].volatiles.focusEnergy = TRUE;
+        gBattleMons[battler].volatiles.criticalHitBoost = CRIT_BOOST_TWO_STAGES;
         BattleScriptCall(BattleScript_BerryFocusEnergy);
         effect = ITEM_EFFECT_OTHER;
     }
@@ -1052,7 +1062,7 @@ enum ItemEffect ItemBattleEffects(enum BattlerId itemBattler, enum BattlerId bat
         effect = TryBoosterEnergy(itemBattler, GetBattlerAbility(itemBattler));
         break;
     case HOLD_EFFECT_WHITE_HERB:
-        effect = RestoreWhiteHerbStats(itemBattler);
+        effect = RestoreWhiteHerbStats(itemBattler, timing);
         break;
     case HOLD_EFFECT_MIRROR_HERB:
         effect = TryConsumeMirrorHerb(itemBattler);

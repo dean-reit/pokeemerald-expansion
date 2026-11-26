@@ -678,7 +678,7 @@ void BattleLoadMonSpriteGfx(struct Pokemon *mon, enum BattlerId battler)
     if (GetActiveGimmick(battler) == GIMMICK_DYNAMAX)
     {
         // Calyrex and its forms have a blue dynamax aura instead of red.
-        if (GET_BASE_SPECIES_ID(species) == SPECIES_CALYREX)
+        if (GetBaseSpecies(species) == SPECIES_CALYREX)
             BlendPalette(paletteOffset, 16, 4, RGB(12, 0, 31));
         else
             BlendPalette(paletteOffset, 16, 4, RGB(31, 0, 12));
@@ -756,9 +756,11 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
             spriteSheet = &sSpriteSheets_DoublesOpponentHealthbox[1];
             break;
         case 6 ... 9:
+        {
             enum BattlerPosition position = GetBattlerPosition((enum BattlerId)(state - 6));
             spriteSheet = &sSpriteSheets_HealthBar[position];
             break;
+        }
         default:
             return TRUE;
         }
@@ -768,16 +770,18 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
         switch (state)
         {
         case 2:
-            spriteSheet = (gBattleTypeFlags & BATTLE_TYPE_SAFARI) ? &sSpriteSheet_SafariHealthbox : &sSpriteSheet_SinglesPlayerHealthbox;
+            spriteSheet = HasAnyBattleFlags(BATTLE_TYPE_SAFARI) ? &sSpriteSheet_SafariHealthbox : &sSpriteSheet_SinglesPlayerHealthbox;
             break;
         case 3:
             spriteSheet = B_HP_PERCENTAGE_DISPLAY ? &sSpriteSheet_SinglesOpponentLargeHealthbox : &sSpriteSheet_SinglesOpponentHealthbox;
             break;
         case 4:
         case 5:
+        {
             enum BattlerPosition position = GetBattlerPosition((enum BattlerId)(state - 4));
             spriteSheet = &sSpriteSheets_HealthBar[position];
             break;
+        }
         default:
             return TRUE;
         }
@@ -817,7 +821,7 @@ bool8 BattleInitAllSprites(u8 *state1, u8 *battler)
         (*state1)++;
         break;
     case 3:
-        if ((gBattleTypeFlags & BATTLE_TYPE_SAFARI) && *battler == 0)
+        if (HasAnyBattleFlags(BATTLE_TYPE_SAFARI) && *battler == 0)
             gHealthboxSpriteIds[*battler] = CreateSafariPlayerHealthboxSprites();
         else
             gHealthboxSpriteIds[*battler] = CreateBattlerHealthboxSprites(*battler);
@@ -844,7 +848,7 @@ bool8 BattleInitAllSprites(u8 *state1, u8 *battler)
         }
         break;
     case 5:
-        if (!IsOnPlayerSide(*battler) || !(gBattleTypeFlags & BATTLE_TYPE_SAFARI))
+        if (!IsOnPlayerSide(*battler) || !HasAnyBattleFlags(BATTLE_TYPE_SAFARI))
             UpdateHealthboxAttribute(gHealthboxSpriteIds[*battler], GetBattlerMon(*battler), HEALTHBOX_ALL);
         SetHealthboxSpriteInvisible(gHealthboxSpriteIds[*battler]);
         (*battler)++;
@@ -968,7 +972,7 @@ void HandleSpeciesGfxDataChange(enum BattlerId battlerAtk, enum BattlerId battle
     if (GetActiveGimmick(battlerAtk) == GIMMICK_DYNAMAX)
     {
         // Calyrex and its forms have a blue dynamax aura instead of red.
-        if (GET_BASE_SPECIES_ID(targetSpecies) == SPECIES_CALYREX)
+        if (GetBaseSpecies(targetSpecies) == SPECIES_CALYREX)
             BlendPalette(paletteOffset, 16, 4, RGB(12, 0, 31));
         else
             BlendPalette(paletteOffset, 16, 4, RGB(31, 0, 12));
@@ -1090,10 +1094,10 @@ void HandleBattleLowHpMusicChange(void)
     {
         enum BattlerId playerBattler1 = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
         enum BattlerId playerBattler2 = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
-        u8 battler1PartyId = GetPartyIdFromBattlePartyId(gBattlerPartyIndexes[playerBattler1]);
-        u8 battler2PartyId = GetPartyIdFromBattlePartyId(gBattlerPartyIndexes[playerBattler2]);
-        struct Pokemon mon1 = GetBattlerParty(playerBattler1)[battler1PartyId];
-        struct Pokemon mon2 = GetBattlerParty(playerBattler2)[battler2PartyId];
+        enum PartyBattleOrder battler1Slot = GetBattleSlotFromBattlePartyId(gBattlerPartyIndexes[playerBattler1]);
+        enum PartyBattleOrder battler2Slot = GetBattleSlotFromBattlePartyId(gBattlerPartyIndexes[playerBattler2]);
+        struct Pokemon mon1 = GetBattlerParty(playerBattler1)[battler1Slot];
+        struct Pokemon mon2 = GetBattlerParty(playerBattler2)[battler2Slot];
 
         if (GetMonData(&mon1, MON_DATA_HP) != 0)
             HandleLowHpMusicChange(&mon1, playerBattler1);

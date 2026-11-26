@@ -45,7 +45,11 @@ static inline u32 _SFC32_Next(struct Sfc32State *state)
 
 static inline u32 LocalRandom32(rng_value_t *val)
 {
+#if TESTING
+    return 0;
+#else
     return _SFC32_Next(val);
+#endif
 }
 
 static inline u16 LocalRandom(rng_value_t *val)
@@ -132,6 +136,8 @@ enum RandomTag
     RNG_CURSED_BODY,
     RNG_CUTE_CHARM,
     RNG_DAMAGE_MODIFIER,
+    RNG_DISABLE_MOVE,
+    RNG_DISABLE_TURNS,
     RNG_EFFECT_SPORE,
     RNG_FLAME_BODY,
     RNG_FORCE_RANDOM_SWITCH,
@@ -163,6 +169,7 @@ enum RandomTag
     RNG_TAUNT_TURNS,
     RNG_ENCORE_TURNS,
     RNG_SPEED_TIE,
+    RNG_SPITE_PP_REDUCTION,
     RNG_STATIC,
     RNG_STENCH,
     RNG_TOXIC_CHAIN,
@@ -248,6 +255,8 @@ enum RandomTag
     RNG_WILD_MON_TARGET,
     RNG_AI_FAKE_OUT_SAVE_ALLY,
     RNG_AI_DMG_ROLL_RANDOM,
+    RNG_POKEBLOCK_FEEDER_FORCE_NATURE,
+    RNG_ROCK_SMASH_ITEM_DROP,
     RNG_RANDOM_BERRY,
     RNG_DAYCARE_MAKE_EGG,
     RNG_DAYCARE_PICK_NATURE_PARENT,

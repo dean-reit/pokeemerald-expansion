@@ -548,6 +548,27 @@ DOUBLE_BATTLE_TEST("Neutralizing Gas leaving the field allows abilities to activ
     }
 }
 
+DOUBLE_BATTLE_TEST("Neutralizing Gas continues reactivating abilities after one starts weather")
+{
+    GIVEN {
+        ASSUME(GetMoveCategory(MOVE_SCRATCH) != DAMAGE_CATEGORY_STATUS);
+        PLAYER(SPECIES_WEEZING) { Ability(ABILITY_NEUTRALIZING_GAS); HP(1); Speed(4); }
+        PLAYER(SPECIES_POLITOED) { Ability(ABILITY_DRIZZLE); Speed(3); }
+        OPPONENT(SPECIES_EKANS) { Ability(ABILITY_INTIMIDATE); Speed(2); }
+        OPPONENT(SPECIES_WOBBUFFET) { Speed(1); }
+    } WHEN {
+        TURN { MOVE(opponentRight, MOVE_SCRATCH, target: playerLeft); }
+    } SCENE {
+        ABILITY_POPUP(playerLeft, ABILITY_NEUTRALIZING_GAS);
+        ANIMATION(ANIM_TYPE_MOVE, MOVE_SCRATCH, opponentRight);
+        HP_BAR(playerLeft);
+        MESSAGE("The effects of the neutralizing gas wore off!");
+        ABILITY_POPUP(playerRight, ABILITY_DRIZZLE);
+        ABILITY_POPUP(opponentLeft, ABILITY_INTIMIDATE);
+        MESSAGE("Weezing fainted!");
+    }
+}
+
 SINGLE_BATTLE_TEST("Neutralizing Gas prevents Insomnia from blocking Rest")
 {
     GIVEN {
@@ -750,5 +771,28 @@ DOUBLE_BATTLE_TEST("Neutralizing Gas doesn't reactivate Beads of Ruin after Chi-
             MESSAGE("The opposing Chi-Yu's Beads of Ruin weakened the Sp. Def of all surrounding Pokémon!");
         }
         MESSAGE("The opposing Weezing fainted!");
+    }
+}
+
+SINGLE_BATTLE_TEST("Neutralizing Gas leaving activates opposing Intimidate and user's Eject Pack doesn't activate from it")
+{
+    GIVEN {
+        ASSUME(GetItemHoldEffect(ITEM_EJECT_PACK) == HOLD_EFFECT_EJECT_PACK);
+        PLAYER(SPECIES_WEEZING) { Ability(ABILITY_NEUTRALIZING_GAS); Item(ITEM_EJECT_PACK); }
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_INCINEROAR) { Ability(ABILITY_INTIMIDATE); }
+    } WHEN {
+        TURN { SWITCH(player, 1); }
+        TURN { SWITCH(player, 0); }
+    } SCENE {
+        ABILITY_POPUP(player, ABILITY_NEUTRALIZING_GAS);
+        MESSAGE("The effects of the neutralizing gas wore off!");
+        ABILITY_POPUP(opponent, ABILITY_INTIMIDATE);
+        NONE_OF {
+            ITEM_POPUP(player, ITEM_EJECT_PACK);
+            ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_HELD_ITEM_EFFECT, player);
+        }
+    } THEN {
+        EXPECT_EQ(player->item, ITEM_EJECT_PACK);
     }
 }

@@ -130,7 +130,7 @@ bool32 IsAnyAbilityPopUpActive(void);
 void CreateAbilityPopUp(enum BattlerId battlerId, enum Ability ability, bool32 isDoubleBattle);
 void DestroyAbilityPopUp(enum BattlerId battlerId);
 bool32 CanThrowLastUsedBall(void);
-void TryHideLastUsedBall(void);
+void TryHideLastUsedBallAndBattleInfoMenu(void);
 void TryRestoreLastUsedBall(void);
 void TryAddLastUsedBallItemSprites(void);
 void SwapBallToDisplay(bool32 sameBall);
@@ -139,9 +139,12 @@ void UpdateAbilityPopup(enum BattlerId battlerId);
 void CategoryIcons_LoadSpritesGfx(void);
 void TryToAddMoveInfoWindow(void);
 void TryToHideMoveInfoWindow(void);
+void TryToAddBattleStatusHint(void);
 void TryAddPokeballIconToHealthbox(u8 healthboxSpriteId, bool8 noStatus);
 void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon);
 void CreateItemPopUp(enum BattlerId battlerId);
 void FreeAbilityPopUpGfx(void);
+void ShowWeatherIndicator(bool32 instant);
+void HideWeatherIndicator(bool32 instant);
 
 #endif // GUARD_BATTLE_INTERFACE_H

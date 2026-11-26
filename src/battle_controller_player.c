@@ -10,6 +10,9 @@
 #include "battle_tv.h"
 #include "battle_z_move.h"
 #include "battle_gimmick.h"
+#include "battle_info.h"
+#include "battle_ai_record.h"
+#include "battle_ai_util.h"
 #include "bg.h"
 #include "data.h"
 #include "item.h"
@@ -33,6 +36,7 @@
 #include "util.h"
 #include "window.h"
 #include "line_break.h"
+#include "config/battle_info.h"
 #include "constants/battle_anim.h"
 #include "constants/battle_move_effects.h"
 #include "constants/battle_partner.h"
@@ -95,6 +99,8 @@ static void ReloadMoveNames(enum BattlerId battler);
 static u32 CheckTypeEffectiveness(enum BattlerId battlerAtk, enum BattlerId battlerDef);
 static u32 CheckTargetTypeEffectiveness(enum BattlerId battler);
 static void MoveSelectionDisplayMoveEffectiveness(u32 foeEffectiveness, enum BattlerId battler);
+static void OpenBattleStatusMenu(enum BattlerId battler);
+static void WaitForBattleStatusMenu(enum BattlerId battler);
 
 static void (*const sPlayerBufferCommands[CONTROLLER_CMDS_COUNT])(enum BattlerId battler) =
 {
@@ -165,7 +171,7 @@ void SetControllerToPlayer(enum BattlerId battler)
 void PlayerBufferExecCompleted(enum BattlerId battler)
 {
     gBattlerControllerFuncs[battler] = PlayerBufferRunCommand;
-    if (gBattleTypeFlags & BATTLE_TYPE_LINK)
+    if (HasAnyBattleFlags(BATTLE_TYPE_LINK))
     {
         u8 playerId = GetMultiplayerId();
 
@@ -294,7 +300,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
                 gBattleStruct->ackBallUseBtn = FALSE;
                 PlaySE(SE_SELECT);
                 ArrowsChangeColorLastBallCycle(FALSE);
-                TryHideLastUsedBall();
+                TryHideLastUsedBallAndBattleInfoMenu();
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_THROW_BALL, 0);
                 BtlController_Complete(battler);
             }
@@ -302,10 +308,22 @@ static void HandleInputChooseAction(enum BattlerId battler)
         }
     }
 
+    if (B_INFO_ENABLED
+     && JOY_NEW(B_BATTLE_INFO_BUTTON)
+     && !(B_BATTLE_INFO_BUTTON == L_BUTTON && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_L_EQUALS_A))
+    {
+        PlaySE(SE_SELECT);
+        TryHideLastUsedBallAndBattleInfoMenu();
+        BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0x10, RGB_BLACK);
+        gBattlerControllerFuncs[battler] = OpenBattleStatusMenu;
+        gBattlerInMenuId = battler;
+        return;
+    }
+
     if (JOY_NEW(A_BUTTON))
     {
         PlaySE(SE_SELECT);
-        TryHideLastUsedBall();
+        TryHideLastUsedBallAndBattleInfoMenu();
 
         switch (gActionSelectionCursor[battler])
         {
@@ -369,7 +387,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
         if (IsDoubleBattle()
          && GetBattlerPosition(battler) == B_POSITION_PLAYER_RIGHT
          && !(gAbsentBattlerFlags & (1u << GetBattlerAtPosition(B_POSITION_PLAYER_LEFT)))
-         && !(gBattleTypeFlags & BATTLE_TYPE_MULTI))
+         && !HasAnyBattleFlags(BATTLE_TYPE_MULTI))
         {
             // Return item to bag if partner had selected one (if consumable).
             if (gBattleResources->bufferA[battler][1] == B_ACTION_USE_ITEM && GetItemConsumability(itemId))
@@ -382,7 +400,7 @@ static void HandleInputChooseAction(enum BattlerId battler)
         }
         else if (B_QUICK_MOVE_CURSOR_TO_RUN)
         {
-            if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER)) // If wild battle, pressing B moves cursor to "Run".
+            if (!IsTrainerBattle()) // If wild battle, pressing B moves cursor to "Run".
             {
                 PlaySE(SE_SELECT);
                 ActionSelectionDestroyCursorAt(gActionSelectionCursor[battler]);
@@ -404,10 +422,29 @@ static void HandleInputChooseAction(enum BattlerId battler)
              && JOY_NEW(B_LAST_USED_BALL_BUTTON) && CanThrowLastUsedBall())
     {
         PlaySE(SE_SELECT);
-        TryHideLastUsedBall();
+        TryHideLastUsedBallAndBattleInfoMenu();
         BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_THROW_BALL, 0);
         BtlController_Complete(battler);
     }
+}
+
+static void OpenBattleStatusMenu(enum BattlerId battler)
+{
+    if (!gPaletteFade.active)
+    {
+        gBattlerControllerFuncs[battler] = WaitForBattleStatusMenu;
+        CloseMainBattleScreen();
+        CB2_BattleInfoFromBattle();
+    }
+}
+
+static void WaitForBattleStatusMenu(enum BattlerId battler)
+{
+    if (gPaletteFade.active)
+        return;
+
+    if (gMain.callback2 == BattleMainCB2)
+        PlayerHandleChooseAction(battler);
 }
 
 void HandleInputChooseTarget(enum BattlerId battler)
@@ -444,7 +481,7 @@ void HandleInputChooseTarget(enum BattlerId battler)
         else
             BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_EXEC_SCRIPT, gMoveSelectionCursor[battler] | (gMultiUsePlayerCursor << 8));
         EndBounceEffect(gMultiUsePlayerCursor, BOUNCE_HEALTHBOX);
-        TryHideLastUsedBall();
+        TryHideLastUsedBallAndBattleInfoMenu();
         HideGimmickTriggerSprite();
         BtlController_Complete(battler);
     }
@@ -631,7 +668,7 @@ void HandleInputShowTargets(enum BattlerId battler)
         else
             BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_EXEC_SCRIPT, gMoveSelectionCursor[battler] | (gMultiUsePlayerCursor << 8));
         HideGimmickTriggerSprite();
-        TryHideLastUsedBall();
+        TryHideLastUsedBallAndBattleInfoMenu();
         BtlController_Complete(battler);
     }
     else if (JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)
@@ -704,7 +741,7 @@ void HandleInputChooseMove(enum BattlerId battler)
             moveTarget = GetMoveTarget(GetMaxMove(battler, moveInfo->moves[gMoveSelectionCursor[battler]]));
 
         gMultiUsePlayerCursor = GetDefaultSelectionTarget(battler, moveTarget);
-        
+
         enum BattlerId partner = GetPartnerBattler(battler);
 
         if (gBattleResources->bufferA[battler][1]) // a double battle
@@ -754,7 +791,7 @@ void HandleInputChooseMove(enum BattlerId battler)
             else
                 BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_EXEC_SCRIPT, gMoveSelectionCursor[battler] | (gMultiUsePlayerCursor << 8));
             HideGimmickTriggerSprite();
-            TryHideLastUsedBall();
+            TryHideLastUsedBallAndBattleInfoMenu();
             BtlController_Complete(battler);
             break;
         case 1:
@@ -864,7 +901,7 @@ void HandleInputChooseMove(enum BattlerId battler)
     }
     else if (B_MOVE_REARRANGEMENT_IN_BATTLE < GEN_4 && JOY_NEW(SELECT_BUTTON) && !gBattleStruct->zmove.viewing && !gBattleStruct->descriptionSubmenu)
     {
-        if (gNumberOfMovesToChoose > 1 && !(gBattleTypeFlags & BATTLE_TYPE_LINK))
+        if (gNumberOfMovesToChoose > 1 && !HasAnyBattleFlags(BATTLE_TYPE_LINK))
         {
             MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 29);
 
@@ -930,7 +967,7 @@ static void ReloadMoveNames(enum BattlerId battler)
     else
     {
         gBattleStruct->zmove.viewing = FALSE;
-        MoveSelectionDestroyCursorAt(battler);
+        MoveSelectionDestroyCursorAt(MOVESLOT_0);
         MoveSelectionDisplayMoveNames(battler);
         MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 0);
         if (B_SHOW_EFFECTIVENESS)
@@ -1084,11 +1121,11 @@ void HandleMoveSwitching(enum BattlerId battler)
             }
         }
 
-        if (IS_FRLG && gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+        if (IS_FRLG && HasAnyBattleFlags(BATTLE_TYPE_FIRST_BATTLE))
             gBattlerControllerFuncs[battler] = OakOldManHandleInputChooseMove;
         else
             gBattlerControllerFuncs[battler] = HandleInputChooseMove;
-        gMoveSelectionCursor[battler] = gMultiUsePlayerCursor;
+        gMoveSelectionCursor[battler] = (enum MoveSlot)gMultiUsePlayerCursor;
         MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 0);
         if (B_SHOW_EFFECTIVENESS)
             MoveSelectionDisplayMoveEffectiveness(CheckTargetTypeEffectiveness(battler), battler);
@@ -1104,7 +1141,7 @@ void HandleMoveSwitching(enum BattlerId battler)
         MoveSelectionDestroyCursorAt(gMultiUsePlayerCursor);
         MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 0);
 
-        if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+        if (HasAnyBattleFlags(BATTLE_TYPE_FIRST_BATTLE))
             gBattlerControllerFuncs[battler] = OakOldManHandleInputChooseMove;
         else
             gBattlerControllerFuncs[battler] = HandleInputChooseMove;
@@ -1225,7 +1262,7 @@ void SetBattleEndCallbacks(enum BattlerId battler)
 {
     if (!gPaletteFade.active)
     {
-        if (gBattleTypeFlags & BATTLE_TYPE_LINK)
+        if (HasAnyBattleFlags(BATTLE_TYPE_LINK))
         {
             if (IsLinkTaskFinished())
             {
@@ -1252,7 +1289,7 @@ static void Intro_WaitForShinyAnimAndHealthbox(enum BattlerId battler)
     bool8 healthboxAnimDone = FALSE;
 
     // Check if healthbox has finished sliding in
-    if (TwoPlayerIntroMons(battler) && !(gBattleTypeFlags & BATTLE_TYPE_MULTI))
+    if (TwoPlayerIntroMons(battler) && !HasAnyBattleFlags(BATTLE_TYPE_MULTI))
     {
         if (gSprites[gHealthboxSpriteIds[battler]].callback == SpriteCallbackDummy
          && gSprites[gHealthboxSpriteIds[GetPartnerBattler(battler)]].callback == SpriteCallbackDummy)
@@ -1306,7 +1343,7 @@ static void Intro_TryShinyAnimShowHealthbox(enum BattlerId battler)
     {
         if (!gBattleSpritesDataPtr->healthBoxesData[battler].healthboxSlideInStarted)
         {
-            if (TwoPlayerIntroMons(battler) && !(gBattleTypeFlags & BATTLE_TYPE_MULTI))
+            if (TwoPlayerIntroMons(battler) && !HasAnyBattleFlags(BATTLE_TYPE_MULTI))
             {
                 UpdateHealthboxAttribute(gHealthboxSpriteIds[GetPartnerBattler(battler)], GetBattlerMon(GetPartnerBattler(battler)), HEALTHBOX_ALL);
                 StartHealthboxSlideIn(GetPartnerBattler(battler));
@@ -1327,7 +1364,7 @@ static void Intro_TryShinyAnimShowHealthbox(enum BattlerId battler)
     {
         if (!gBattleSpritesDataPtr->healthBoxesData[battler].bgmRestored)
         {
-            if (gBattleTypeFlags & BATTLE_TYPE_MULTI && gBattleTypeFlags & BATTLE_TYPE_LINK)
+            if (HasAllBattleFlags(BATTLE_TYPE_MULTI | BATTLE_TYPE_LINK))
                 m4aMPlayContinue(&gMPlayInfo_BGM);
             else
                 m4aMPlayVolumeControl(&gMPlayInfo_BGM, TRACKS_ALL, 0x100);
@@ -1337,7 +1374,7 @@ static void Intro_TryShinyAnimShowHealthbox(enum BattlerId battler)
     }
 
     // Wait for battler anims
-    if (TwoPlayerIntroMons(battler) && !(gBattleTypeFlags & BATTLE_TYPE_MULTI))
+    if (TwoPlayerIntroMons(battler) && !HasAnyBattleFlags(BATTLE_TYPE_MULTI))
     {
         if (gSprites[gBattleControllerData[battler]].callback == SpriteCallbackDummy
             && gSprites[gBattlerSpriteIds[battler]].callback == SpriteCallbackDummy
@@ -1359,7 +1396,7 @@ static void Intro_TryShinyAnimShowHealthbox(enum BattlerId battler)
     // Clean up
     if (bgmRestored && battlerAnimsDone)
     {
-        if (TwoPlayerIntroMons(battler) && !(gBattleTypeFlags & BATTLE_TYPE_MULTI))
+        if (TwoPlayerIntroMons(battler) && !HasAnyBattleFlags(BATTLE_TYPE_MULTI))
             DestroySprite(&gSprites[gBattleControllerData[GetPartnerBattler(battler)]]);
         DestroySprite(&gSprites[gBattleControllerData[battler]]);
 
@@ -1594,7 +1631,7 @@ static void WaitForMonSelection(enum BattlerId battler)
         if (gPartyMenuUseExitCallback == TRUE)
             BtlController_EmitChosenMonReturnValue(battler, B_COMM_TO_ENGINE, gSelectedMonPartyId, gBattlePartyCurrentOrder);
         else
-            BtlController_EmitChosenMonReturnValue(battler, B_COMM_TO_ENGINE, PARTY_SIZE, NULL);
+            BtlController_EmitChosenMonReturnValue(battler, B_COMM_TO_ENGINE, PARTY_SLOT_NONE, NULL);
 
         if (gBattleResources->bufferA[battler][1] == PARTY_ACTION_SEND_OUT)
             PrintLinkStandbyMsg();
@@ -1811,7 +1848,7 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     CopyWindowToVram(B_WIN_MOVE_DESCRIPTION, COPYWIN_FULL);
 }
 
-void MoveSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
+void MoveSelectionCreateCursorAt(enum MoveSlot cursorPosition, u8 baseTileNum)
 {
     u16 src[2];
     src[0] = baseTileNum + 1;
@@ -1821,7 +1858,7 @@ void MoveSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
     CopyBgTilemapBufferToVram(0);
 }
 
-void MoveSelectionDestroyCursorAt(u8 cursorPosition)
+void MoveSelectionDestroyCursorAt(enum MoveSlot cursorPosition)
 {
     u16 src[2];
     src[0] = 0x1016;
@@ -1863,7 +1900,7 @@ void CB2_SetUpReshowBattleScreenAfterMenu2(void)
 
 static void PrintLinkStandbyMsg(void)
 {
-    if (gBattleTypeFlags & BATTLE_TYPE_LINK)
+    if (HasAnyBattleFlags(BATTLE_TYPE_LINK))
     {
         gBattle_BG0_X = 0;
         gBattle_BG0_Y = 0;
@@ -1890,7 +1927,7 @@ static enum TrainerPicID PlayerGetTrainerBackPicId(void)
 {
     enum TrainerPicID trainerPicId;
 
-    if (gBattleTypeFlags & BATTLE_TYPE_LINK)
+    if (HasAnyBattleFlags(BATTLE_TYPE_LINK))
         trainerPicId = LinkPlayerGetTrainerPicId(GetMultiplayerId());
     else
         trainerPicId = GetPlayerTrainerPic(gSaveBlock2Ptr->playerGender, GAME_VERSION);
@@ -1910,7 +1947,7 @@ static void PlayerHandleDrawTrainerPic(enum BattlerId battler)
     if (TESTING)
     {
         trainerPicId = TRAINER_PIC_BRENDAN;
-        if (gBattleTypeFlags & BATTLE_TYPE_INGAME_PARTNER)
+        if (HasAnyBattleFlags(BATTLE_TYPE_INGAME_PARTNER))
             xPos = 32;
         else
             xPos = 80;
@@ -1920,14 +1957,14 @@ static void PlayerHandleDrawTrainerPic(enum BattlerId battler)
     {
         trainerPicId = PlayerGetTrainerBackPicId();
 
-        if (gBattleTypeFlags & BATTLE_TYPE_MULTI)
+        if (HasAnyBattleFlags(BATTLE_TYPE_MULTI))
         {
             if ((GetBattlerPosition(battler) & BIT_FLANK) != B_FLANK_LEFT) // Second mon, on the right.
                 xPos = 90;
             else // First mon, on the left.
                 xPos = 32;
 
-            if (gBattleTypeFlags & BATTLE_TYPE_INGAME_PARTNER && gPartnerTrainerId < TRAINER_PARTNER(PARTNER_NONE))
+            if (HasAnyBattleFlags(BATTLE_TYPE_INGAME_PARTNER) && gPartnerTrainerId < TRAINER_PARTNER(PARTNER_NONE))
             {
                 xPos = 90;
                 yPos = 80;
@@ -1945,7 +1982,7 @@ static void PlayerHandleDrawTrainerPic(enum BattlerId battler)
     }
 
     // Use front pic table for any tag battles unless your partner is Steven or a custom partner.
-    if (gBattleTypeFlags & BATTLE_TYPE_INGAME_PARTNER && gPartnerTrainerId < TRAINER_PARTNER(PARTNER_NONE))
+    if (HasAnyBattleFlags(BATTLE_TYPE_INGAME_PARTNER) && gPartnerTrainerId < TRAINER_PARTNER(PARTNER_NONE))
     {
         trainerPicId = PlayerGenderToFrontTrainerPicId(gSaveBlock2Ptr->playerGender);
         isFrontPic = TRUE;
@@ -2024,12 +2061,13 @@ static void PlayerHandleChooseAction(enum BattlerId battler)
         ActionSelectionDestroyCursorAt(i);
 
     TryRestoreLastUsedBall();
+    TryToAddBattleStatusHint();
     ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
     PREPARE_MON_NICK_BUFFER(gBattleTextBuff1, battler, gBattlerPartyIndexes[battler]);
     BattleStringExpandPlaceholdersToDisplayedString(gText_WhatWillPkmnDo);
 
     enum BattlerId partner = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
-    if (B_SHOW_PARTNER_TARGET && gBattleTypeFlags & BATTLE_TYPE_INGAME_PARTNER && IsBattlerAlive(partner))
+    if (B_SHOW_PARTNER_TARGET && HasAnyBattleFlags(BATTLE_TYPE_INGAME_PARTNER) && IsBattlerAlive(partner))
     {
         StringCopy(gStringVar1, COMPOUND_STRING("Partner will use:\n"));
         enum Move move = GetBattlerChosenMove(partner);
@@ -2110,7 +2148,7 @@ static void PlayerChooseMoveInBattlePalace(enum BattlerId battler)
 
 void PlayerHandleChooseMove(enum BattlerId battler)
 {
-    if (gBattleTypeFlags & BATTLE_TYPE_PALACE)
+    if (HasAnyBattleFlags(BATTLE_TYPE_PALACE))
     {
         gBattleStruct->arenaMindPoints[battler] = 8;
         gBattlerControllerFuncs[battler] = PlayerChooseMoveInBattlePalace;
@@ -2119,6 +2157,7 @@ void PlayerHandleChooseMove(enum BattlerId battler)
     {
         struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
 
+        TryHideLastUsedBallAndBattleInfoMenu();
         InitMoveSelectionsVarsAndStrings(battler);
         gBattleStruct->gimmick.playerSelect = FALSE;
         TryToAddMoveInfoWindow();
@@ -2155,6 +2194,7 @@ static void PlayerHandleChooseItem(enum BattlerId battler)
 {
     s32 i;
 
+    TryHideLastUsedBallAndBattleInfoMenu();
     BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0x10, RGB_BLACK);
     gBattlerControllerFuncs[battler] = OpenBagAndChooseItem;
     gBattlerInMenuId = battler;
@@ -2167,16 +2207,17 @@ static void PlayerHandleChoosePokemon(enum BattlerId battler)
 {
     s32 i;
 
+    TryHideLastUsedBallAndBattleInfoMenu();
     for (i = 0; i < ARRAY_COUNT(gBattlePartyCurrentOrder); i++)
         gBattlePartyCurrentOrder[i] = gBattleResources->bufferA[battler][4 + i];
 
     memcpy(gBattleStruct->battlerPartyOrders[battler], gBattlePartyCurrentOrder, sizeof(gBattlePartyCurrentOrder));
 
-    if (gBattleTypeFlags & BATTLE_TYPE_ARENA && gBattleResources->bufferA[battler][1] != PARTY_ACTION_CANT_SWITCH
+    if (HasAnyBattleFlags(BATTLE_TYPE_ARENA) && gBattleResources->bufferA[battler][1] != PARTY_ACTION_CANT_SWITCH
         && gBattleResources->bufferA[battler][1] != PARTY_ACTION_CHOOSE_FAINTED_MON
         && gBattleResources->bufferA[battler][1] != PARTY_ACTION_SEND_MON_TO_BOX)
     {
-        BtlController_EmitChosenMonReturnValue(battler, B_COMM_TO_ENGINE, gBattlerPartyIndexes[battler] + 1, gBattlePartyCurrentOrder);
+        BtlController_EmitChosenMonReturnValue(battler, B_COMM_TO_ENGINE, (enum PartySlot)(gBattlerPartyIndexes[battler] + 1), gBattlePartyCurrentOrder);
         BtlController_Complete(battler);
     }
     else
@@ -2184,7 +2225,7 @@ static void PlayerHandleChoosePokemon(enum BattlerId battler)
         gBattleControllerData[battler] = CreateTask(TaskDummy, 0xFF);
         gTasks[gBattleControllerData[battler]].data[0] = gBattleResources->bufferA[battler][1];
         *(&gBattleStruct->battlerPreventingSwitchout) = gBattleResources->bufferA[battler][8];
-        *(&gBattleStruct->prevSelectedPartySlot) = gBattleResources->bufferA[battler][2];
+        gBattleStruct->prevSelectedPartySlot = (enum PartySlot)gBattleResources->bufferA[battler][2];
         *(&gBattleStruct->abilityPreventingSwitchout) = (gBattleResources->bufferA[battler][3] & 0xFF) | (gBattleResources->bufferA[battler][7] << 8);
         BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 0x10, RGB_BLACK);
         gBattlerControllerFuncs[battler] = OpenPartyMenuToChooseMon;
@@ -2261,7 +2302,7 @@ static void PlayerHandleTwoReturnValues(enum BattlerId battler)
 
 static void PlayerHandleChosenMonReturnValue(enum BattlerId battler)
 {
-    BtlController_EmitChosenMonReturnValue(battler, B_COMM_TO_ENGINE, 0, NULL);
+    BtlController_EmitChosenMonReturnValue(battler, B_COMM_TO_ENGINE, PARTY_SLOT_0, NULL);
     BtlController_Complete(battler);
 }
 
@@ -2303,7 +2344,7 @@ static void PlayerHandleLinkStandbyMsg(enum BattlerId battler)
     {
     case LINK_STANDBY_MSG_STOP_BOUNCE:
         PrintLinkStandbyMsg();
-        // fall through
+        [[fallthrough]];
     case LINK_STANDBY_STOP_BOUNCE_ONLY:
         EndBounceEffect(battler, BOUNCE_HEALTHBOX);
         EndBounceEffect(battler, BOUNCE_MON);
@@ -2388,6 +2429,7 @@ static bool32 ShouldShowTypeEffectiveness(u32 targetId)
 static u32 CheckTypeEffectiveness(enum BattlerId battlerAtk, enum BattlerId battlerDef)
 {
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battlerAtk][4]);
+
     struct DamageContext ctx = {0};
     ctx.battlerAtk = battlerAtk;
     ctx.battlerDef = battlerDef;
@@ -2397,9 +2439,19 @@ static u32 CheckTypeEffectiveness(enum BattlerId battlerAtk, enum BattlerId batt
     ctx.weather = GetWeather();
     ctx.terrain = gFieldTimers.terrain;
     ctx.abilities[ctx.battlerAtk] = GetBattlerAbility(battlerAtk);
-    ctx.abilities[ctx.battlerDef] = GetBattlerAbility(battlerDef);
     ctx.holdEffects[ctx.battlerAtk] = GetBattlerHoldEffect(battlerAtk);
-    ctx.holdEffects[ctx.battlerDef] = GetBattlerHoldEffect(battlerDef);
+
+    bool32 alwaysConsider = IsBattlerAlly(battlerAtk, battlerDef) || IsAiFlagPresent(AI_FLAG_OMNISCIENT);
+
+    if (GetRecordedPartyMonData(battlerDef)->ability != ABILITY_NONE || alwaysConsider)
+    {
+        ctx.abilities[ctx.battlerDef] = GetBattlerAbility(battlerDef);
+    }
+
+    if (GetRecordedPartyMonData(battlerDef)->holdEffect != HOLD_EFFECT_NONE || alwaysConsider)
+    {
+        ctx.holdEffects[ctx.battlerDef] = GetBattlerHoldEffect(battlerDef);
+    }
 
     uq4_12_t modifier = CalcTypeEffectivenessMultiplier(&ctx);
 

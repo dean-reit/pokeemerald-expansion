@@ -59,6 +59,8 @@
 #include "constants/trainers.h"
 #include "constants/trainer_hill.h"
 #include "constants/weather.h"
+#include "fishing.h"
+#include "bxpy.h"
 
 enum TransitionType
 {
@@ -84,6 +86,7 @@ static void CB2_EndFirstBattle(void);
 static void SaveChangesToPlayerParty(void);
 static void HandleBattleVariantEndParty(void);
 static void CB2_EndTrainerBattle(void);
+static void CB2_EndSafariBattle(void);
 static bool32 IsPlayerDefeated(u32 battleOutcome);
 #if FREE_MATCH_CALL == FALSE
 static u16 GetRematchTrainerId(u16 trainerId);
@@ -402,9 +405,12 @@ static void DoStandardWildBattle(bool32 isDouble)
     if (IsNPCFollowerWildBattle())
     {
         gBattleTypeFlags |= BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER | BATTLE_TYPE_DOUBLE;
+        SavePlayerParty();
     }
     else if (isDouble)
+    {
         gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
+    }
     if (CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE)
     {
         VarSet(VAR_TEMP_E, 0);
@@ -456,7 +462,9 @@ static void DoSafariBattle(void)
     FreezeObjectEvents();
     StopPlayerAvatar();
     gMain.savedCallback = CB2_EndSafariBattle;
-    gBattleTypeFlags = BATTLE_TYPE_SAFARI;
+    gBattleTypeFlags = 0;
+    if (!DoesSafariUsePlayerPokemon())
+        gBattleTypeFlags |= BATTLE_TYPE_SAFARI;
     CreateBattleStartTask(GetWildBattleTransition(), 0);
 }
 
@@ -490,7 +498,7 @@ static void DoBattlePikeWildBattle(void)
 static void DoTrainerBattle(void)
 {
     CreateNPCTrainerParty(&gParties[B_TRAINER_OPPONENT_A][0], TRAINER_BATTLE_PARAM.opponentA);
-    if (gBattleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS && !BATTLE_TWO_VS_ONE_OPPONENT)
+    if (HasAnyBattleFlags(BATTLE_TYPE_TWO_OPPONENTS) && !IsMultiVsOneOpponentBattle())
         CreateNPCTrainerParty(&gParties[B_TRAINER_OPPONENT_B][0], TRAINER_BATTLE_PARAM.opponentB);
     CreateBattleStartTask(GetTrainerBattleTransition(), 0);
     IncrementGameStat(GAME_STAT_TOTAL_BATTLES);
@@ -846,16 +854,12 @@ static enum TransitionType GetBattleTransitionTypeByMap(void)
 
 static u16 GetSumOfPlayerPartyLevel(u8 numMons)
 {
-    u8 sum = 0;
-    int i;
-
-    for (i = 0; i < PARTY_SIZE; i++)
+    u32 sum = 0;
+    for (enum PartySlot slot = 0; slot < PARTY_SIZE; slot++)
     {
-        enum Species species = GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPECIES_OR_EGG);
-
-        if (species != SPECIES_EGG && species != SPECIES_NONE && GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_HP) != 0)
+        if (IsMonValidAndAliveForBattle(&gParties[B_TRAINER_PLAYER][slot]))
         {
-            sum += GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_LEVEL);
+            sum += GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_LEVEL);
             if (--numMons == 0)
                 break;
         }
@@ -1156,7 +1160,7 @@ static void BattleSetup_ConfigureApproachingFacilityTrainerBattle(TrainerBattleP
     PUSH(EventSnippet_TrainerApproach)
     PUSH(EventSnippet_ShowTrainerIntroMsg)
 
-    if (gNoOfApproachingTrainers > 1) 
+    if (gNoOfApproachingTrainers > 1)
     {
         SetMapVarsToTrainerB();
 
@@ -1201,7 +1205,7 @@ static void BattleSetup_ConfigureApproachingTrainerBattle(TrainerBattleParameter
     PUSH       (EventSnippet_TrainerApproach)
     PUSH_IF_SET(EventSnippet_ShowTrainerIntroMsg, battleParams->params.introTextA)
 
-    if (gNoOfApproachingTrainers > 1) 
+    if (gNoOfApproachingTrainers > 1)
     {
         SetMapVarsToTrainerB();
 
@@ -1242,14 +1246,14 @@ static void BattleSetup_ConfigureTrainerBattle(TrainerBattleParameter *battlePar
     {
         gNoOfApproachingTrainers = 2;
     }
-    
+
 #if FREE_MATCH_CALL == FALSE
     if (battleParams->params.isRematch)
     {
         battleParams->params.opponentA = GetRematchTrainerId(battleParams->params.opponentA);
     }
 #endif //FREE_MATCH_CALL
-    
+
     PUSH_IF_SET(EventSnippet_PlayTrainerEncounterMusic, battleParams->params.playMusicA)
     PUSH_IF_SET(EventSnippet_SetTrainerFacingDirection, battleParams->params.facePlayer);
     PUSH_IF_SET(EventSnippet_ShowTrainerIntroMsg, battleParams->params.introTextA)
@@ -1308,7 +1312,7 @@ static void SetFacilityOpponent(u8 facility, u8 localId, bool8 isTrainerA)
             break;
         default:
             errorf("Invalid facility: %d", facility);
-    } 
+    }
 
     if (isTrainerA) {
         TRAINER_BATTLE_PARAM.opponentA = trainerId;
@@ -1317,7 +1321,7 @@ static void SetFacilityOpponent(u8 facility, u8 localId, bool8 isTrainerA)
         TRAINER_BATTLE_PARAM.opponentB = trainerId;
         TRAINER_BATTLE_PARAM.objEventLocalIdB = localId;
     }
-   
+
 }
 
 void ConfigureFacilityTrainerBattle(u8 facility, const u8* scriptEndPtr)
@@ -1348,16 +1352,16 @@ void ConfigureApproachingFacilityTrainerBattle(struct ApproachingTrainer *approa
 
     facility = *(approachingTrainer[0].trainerScriptPtr + FACILITYBATTLE_OPCODE_OFFSET);
     localId = gObjectEvents[approachingTrainer[0].objectEventId].localId;
-    scriptEndPtr = approachingTrainer[0].trainerScriptPtr + FACILITYBATTLE_OPCODE_OFFSET + 1; 
+    scriptEndPtr = approachingTrainer[0].trainerScriptPtr + FACILITYBATTLE_OPCODE_OFFSET + 1;
 
     SetFacilityOpponent(facility, localId, TRUE);
-    
+
     if (gNoOfApproachingTrainers > 1)
     {
         gApproachingTrainerId++;
         facility = *(approachingTrainer[1].trainerScriptPtr + FACILITYBATTLE_OPCODE_OFFSET);
         localId = gObjectEvents[approachingTrainer[1].objectEventId].localId;
-        scriptEndPtr = approachingTrainer[1].trainerScriptPtr + FACILITYBATTLE_OPCODE_OFFSET + 1; 
+        scriptEndPtr = approachingTrainer[1].trainerScriptPtr + FACILITYBATTLE_OPCODE_OFFSET + 1;
 
         SetFacilityOpponent(facility, localId, FALSE);
     }
@@ -1520,7 +1524,7 @@ void BattleSetup_StartTrainerBattle(void)
 
 static void CB2_EndDebugBattle(void)
 {
-    if (gBattleTypeFlags & BATTLE_TYPE_INGAME_PARTNER)
+    if (HasAnyBattleFlags(BATTLE_TYPE_INGAME_PARTNER))
     {
         for (u32 i = 0; i < 3; i++)
         {
@@ -1548,6 +1552,12 @@ void BattleSetup_StartTrainerBattle_Debug(void)
 
 static void SaveChangesToPlayerParty(void)
 {
+    bool32 isSkyBattle = FlagGet(B_FLAG_SKY_BATTLE);
+    bool32 isBXPY = FlagGet(B_FLAG_BXPY) && BXPY_RETAIN_CHANGES;
+
+    if (!isSkyBattle && !isBXPY)
+        return;
+
     u8 i = 0, j = 0;
     u8 participatedPokemon = VarGet(B_VAR_SKY_BATTLE);
     for (i = 0; i < PARTY_SIZE; i++)
@@ -1562,10 +1572,16 @@ static void SaveChangesToPlayerParty(void)
 
 static void HandleBattleVariantEndParty(void)
 {
-    if (B_FLAG_SKY_BATTLE == 0 || !FlagGet(B_FLAG_SKY_BATTLE))
+    bool32 isNotSkyBattle = !FlagGet(B_FLAG_SKY_BATTLE);
+    bool32 isNotBXPYBattle = !FlagGet(B_FLAG_BXPY);
+
+    if (isNotSkyBattle && isNotBXPYBattle)
         return;
+
     SaveChangesToPlayerParty();
     LoadPlayerParty();
+    BXPY_TryHealAfterBattle();
+    FlagClear(B_FLAG_BXPY);
     FlagClear(B_FLAG_SKY_BATTLE);
 }
 
@@ -1651,12 +1667,34 @@ static void CB2_EndRematchBattle(void)
     }
 }
 
+static void CB2_EndSafariBattle(void)
+{
+    IncrementSafariValuesPostBattle(gBattleResults.pokeblockThrows, (gBattleOutcome == B_OUTCOME_CAUGHT));
+    if (GetSafariBallCount())
+    {
+        SetMainCallback2(CB2_ReturnToField);
+    }
+    else if (gBattleOutcome == B_OUTCOME_NO_SAFARI_BALLS)
+    {
+        RunScriptImmediately(SafariZone_EventScript_OutOfBallsMidBattle);
+        WarpIntoMap();
+        gFieldCallback = FieldCB_ReturnToFieldNoScriptCheckMusic;
+        SetMainCallback2(CB2_LoadMap);
+    }
+    else if (gBattleOutcome == B_OUTCOME_CAUGHT)
+    {
+        ScriptContext_SetupScript(SafariZone_EventScript_OutOfBalls);
+        ScriptContext_Stop();
+        SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+    }
+}
+
 void BattleSetup_StartRematchBattle(void)
 {
     gBattleTypeFlags = BATTLE_TYPE_TRAINER;
     if (GetTrainerBattleType(TRAINER_BATTLE_PARAM.opponentA) == TRAINER_BATTLE_TYPE_DOUBLES)
         gBattleTypeFlags |= BATTLE_TYPE_DOUBLE;
-    
+
     gMain.savedCallback = CB2_EndRematchBattle;
     DoTrainerBattle();
     ScriptContext_Stop();
@@ -1990,7 +2028,7 @@ static void ClearTrainerWantRematchState(const struct RematchTrainer *table, u16
 void ClearCurrentTrainerWantRematchVsSeeker(void)
 {
 #if FREE_MATCH_CALL == FALSE
-    if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER) && FlagGet(I_VS_SEEKER_CHARGING) && (I_VS_SEEKER_CHARGING != 0))
+    if (IsTrainerBattle() && FlagGet(I_VS_SEEKER_CHARGING) && (I_VS_SEEKER_CHARGING != 0))
     {
         for (u32 i = 0; i < REMATCH_TABLE_ENTRIES; i++)
         {
@@ -2129,7 +2167,7 @@ bool8 IsTrainerReadyForRematch(void)
 
 static void HandleRematchVarsOnBattleEnd(void)
 {
-    if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER) && (I_VS_SEEKER_CHARGING != 0))
+    if (IsTrainerBattle() && (I_VS_SEEKER_CHARGING != 0))
         ClearRematchMovementByTrainerId();
 
     ClearTrainerWantRematchState(gRematchTable, TRAINER_BATTLE_PARAM.opponentA);
@@ -2188,6 +2226,20 @@ void SetMultiTrainerBattle(struct ScriptContext *ctx)
     gPartnerTrainerId = TRAINER_PARTNER(ScriptReadHalfword(ctx));
 };
 
+void BattleSetup_StartBXPYBattle(u32 battleFlags)
+{
+    FlagSet(B_FLAG_BXPY);
+    gBattleTypeFlags = battleFlags;
+    gMain.savedCallback = CB2_EndTrainerBattle;
+
+    CreateBattleStartTask(GetTrainerBattleTransition(), 0);
+    IncrementGameStat(GAME_STAT_TOTAL_BATTLES);
+    IncrementGameStat(GAME_STAT_TRAINER_BATTLES);
+    TryUpdateGymLeaderRematchFromTrainer();
+
+    ScriptContext_Stop();
+}
+
 void CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer *trainer)
 {
     s32 i;
@@ -2196,7 +2248,7 @@ void CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Traine
     ZeroPartyMons(party);
 
     monsCount = trainer->partySize;
-    if (gBattleTypeFlags & BATTLE_TYPE_TWO_OPPONENTS && (B_MULTI_HALF_TEAMS || trainer->multiTeamSize == MULTI_TEAM_SIZE_HALF))
+    if (HasAnyBattleFlags(BATTLE_TYPE_TWO_OPPONENTS) && (B_MULTI_HALF_TEAMS || trainer->multiTeamSize == MULTI_TEAM_SIZE_HALF))
     {
         if (monsCount > PARTY_SIZE / 2)
             monsCount = PARTY_SIZE / 2;

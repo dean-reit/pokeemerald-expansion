@@ -122,6 +122,25 @@ SINGLE_BATTLE_TEST("Illusion breaks in Neutralizing Gas")
     }
 }
 
+DOUBLE_BATTLE_TEST("Illusion breaks in Neutralizing Gas by speed")
+{
+    GIVEN {
+        PLAYER(SPECIES_ZOROARK) { Speed(1); }
+        PLAYER(SPECIES_ZOROARK) { Speed(3); }
+        PLAYER(SPECIES_WYNAUT) { Speed(10); }
+        OPPONENT(SPECIES_ZOROARK) { Speed(2); }
+        OPPONENT(SPECIES_WEEZING) { Speed(5); Ability(ABILITY_NEUTRALIZING_GAS); }
+        OPPONENT(SPECIES_WYNAUT) { Speed(15); }
+    } WHEN {
+        TURN {}
+    } SCENE {
+        ABILITY_POPUP(opponentRight, ABILITY_NEUTRALIZING_GAS);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_ILLUSION_OFF, playerRight);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_ILLUSION_OFF, opponentLeft);
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_ILLUSION_OFF, playerLeft);
+    }
+}
+
 SINGLE_BATTLE_TEST("Illusion breaks if affected by Gastro Acid")
 {
     GIVEN {
@@ -184,5 +203,23 @@ SINGLE_BATTLE_TEST("Illusion does not break if indirect damage causes the user t
             ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_ILLUSION_OFF, player);
             MESSAGE("Zoroark's illusion wore off!");
         }
+    }
+}
+
+AI_SINGLE_BATTLE_TEST("Illusion: a trainer's Z-Move breaks the target's Illusion, not the attacker's")
+{
+    GIVEN {
+        AI_FLAGS(AI_FLAG_CHECK_BAD_MOVE | AI_FLAG_CHECK_VIABILITY | AI_FLAG_TRY_TO_FAINT | AI_FLAG_OMNISCIENT);
+        PLAYER(SPECIES_ZOROARK) { Ability(ABILITY_ILLUSION); Moves(MOVE_CELEBRATE); }
+        PLAYER(SPECIES_WYNAUT);
+        PLAYER(SPECIES_WOBBUFFET);
+        OPPONENT(SPECIES_WOBBUFFET) { Item(ITEM_NORMALIUM_Z); Moves(MOVE_QUICK_ATTACK); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_CELEBRATE); EXPECT_MOVE(opponent, MOVE_QUICK_ATTACK, gimmick: GIMMICK_Z_MOVE); }
+    } SCENE {
+        ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_ILLUSION_OFF, player);
+        NOT ANIMATION(ANIM_TYPE_GENERAL, B_ANIM_ILLUSION_OFF, opponent);
+    } THEN {
+        EXPECT_EQ(gBattleStruct->illusion[B_BATTLER_0].state, ILLUSION_OFF);
     }
 }
