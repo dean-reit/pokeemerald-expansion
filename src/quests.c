@@ -1185,7 +1185,7 @@ static void QuestMenu_InitWindows(void)
 
 static bool8 InitBackgrounds(void)
 {
-	ResetAllBgsCoordinatesAndBgCntRegs();
+	ResetAllBgsCoordinates();
 	sBg1TilemapBuffer = Alloc(0x800);
 	if (sBg1TilemapBuffer == NULL)
 	{
